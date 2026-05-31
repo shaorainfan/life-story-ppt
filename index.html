@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>生命故事会 · 黄奕铭专场</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;700&display=swap');
+
+  :root {
+    --deep-blue: #0F1A2C;
+    --star-white: #E0ECFF;
+    --ion-purple: #9D7DFF;
+    --river-blue: #4A90E2;
+    --star-gold: #FFD700;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--deep-blue);
+    color: var(--star-white);
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  .slides-wrapper { width: 100%; height: 100%; position: relative; }
+
+  .slide {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.8s ease;
+    pointer-events: none; overflow: hidden;
+  }
+  .slide.active { opacity: 1; pointer-events: all; }
+
+  #starCanvas {
+    position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0; pointer-events: none;
+  }
+
+  /* ===== NAVIGATION ===== */
+  .nav {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%); z-index: 100;
+    display: flex; gap: 12px; align-items: center;
+  }
+  .nav-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(224,236,255,0.3); cursor: pointer; transition: all 0.3s;
+  }
+  .nav-dot.active {
+    background: var(--ion-purple);
+    box-shadow: 0 0 10px var(--ion-purple);
+    width: 24px; border-radius: 4px;
+  }
+  .nav-btn {
+    background: rgba(157,125,255,0.15);
+    border: 1px solid rgba(157,125,255,0.4);
+    color: var(--star-white); padding: 7px 18px;
+    border-radius: 20px; cursor: pointer;
+    font-size: 13px; letter-spacing: 1px;
+    transition: all 0.3s; backdrop-filter: blur(10px);
+  }
+  .nav-btn:hover { background: rgba(157,125,255,0.3); box-shadow: 0 0 15px rgba(157,125,255,0.3); }
+
+  /* ===== SLIDE NUMBER ===== */
+  .slide-number {
+    position: fixed; top: 20px; right: 24px;
+    font-size: 13px; color: rgba(224,236,255,0.25);
+    letter-spacing: 2px; z-index: 100;
+  }
+
+  /* ===== NOTES TOGGLE ===== */
+  .notes-toggle {
+    position: fixed; bottom: 24px; left: 24px;
+    background: rgba(157,125,255,0.1);
+    border: 1px solid rgba(157,125,255,0.3);
+    color: rgba(224,236,255,0.5); padding: 6px 14px;
+    border-radius: 16px; cursor: pointer;
+    font-size: 11px; letter-spacing: 1px;
+    z-index: 100; transition: all 0.3s;
+  }
+  .notes-toggle:hover { color: var(--ion-purple); border-color: var(--ion-purple); }
+
+  .speaker-notes {
+    position: fixed; bottom: 64px; right: 24px;
+    width: 300px; background: rgba(15,26,44,0.92);
+    border: 1px solid rgba(157,125,255,0.25);
+    border-radius: 12px; padding: 16px;
+    font-size: 12px; color: rgba(224,236,255,0.5);
+    line-height: 1.8; z-index: 200;
+    backdrop-filter: blur(20px); display: none;
+  }
+  .speaker-notes.visible { display: block; }
+  .notes-title { font-size: 10px; color: var(--ion-purple); letter-spacing: 2px; margin-bottom: 8px; }
+
+  /* ===== VOLUME CONTROL ===== */
+  .volume-ctrl {
+    position: fixed; top: 20px; left: 24px;
+    display: flex; align-items: center; gap: 10px;
+    z-index: 100;
+    background: rgba(15,26,44,0.7);
+    border: 1px solid rgba(157,125,255,0.25);
+    border-radius: 24px; padding: 6px 16px;
+    backdrop-filter: blur(12px);
+  }
+  .vol-icon {
+    font-size: 16px; cursor: pointer;
+    color: rgba(224,236,255,0.6);
+    transition: color 0.2s;
+    user-select: none;
+    min-width: 20px; text-align: center;
+  }
+  .vol-icon:hover { color: var(--ion-purple); }
+  .music-time {
+    font-size: 11px; color: rgba(224,236,255,0.45);
+    letter-spacing: 0.5px; white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    min-width: 80px; text-align: center;
+  }
+  #seekSlider {
+    -webkit-appearance: none;
+    width: 120px; height: 3px;
+    background: rgba(74,144,226,0.3);
+    border-radius: 2px; outline: none; cursor: pointer;
+  }
+  #seekSlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--river-blue);
+    box-shadow: 0 0 6px var(--river-blue);
+    cursor: pointer;
+  }
+  #volSlider {
+    -webkit-appearance: none;
+    width: 70px; height: 3px;
+    background: rgba(157,125,255,0.3);
+    border-radius: 2px; outline: none; cursor: pointer;
+  }
+  #volSlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--ion-purple);
+    box-shadow: 0 0 6px var(--ion-purple);
+    cursor: pointer;
+  }
+
+  /* ==============================
+     SLIDE 1 — COVER
+  ============================== */
+  #slide1 {
+    background: radial-gradient(ellipse at 50% 80%, rgba(74,144,226,0.15) 0%, transparent 60%),
+                radial-gradient(ellipse at 20% 20%, rgba(157,125,255,0.08) 0%, transparent 50%),
+                var(--deep-blue);
+  }
+  .river-canvas {
+    position: absolute; bottom: 0; left: 0;
+    width: 100%; height: 40%; z-index: 2;
+  }
+  .slide1-content {
+    position: relative; z-index: 10;
+    text-align: center;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 0;
+  }
+  .cover-title {
+    font-size: clamp(78px, 10vw, 120px);
+    font-weight: 700; letter-spacing: 0.22em;
+    background: linear-gradient(135deg,#E0ECFF 0%,#9D7DFF 40%,#4A90E2 70%,#FFD700 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    animation: titleGlow 3s ease-in-out infinite alternate;
+    line-height: 1.1; margin-bottom: 28px;
+  }
+  @keyframes titleGlow {
+    0% { filter: drop-shadow(0 0 24px rgba(157,125,255,0.45)); }
+    100% { filter: drop-shadow(0 0 48px rgba(74,144,226,0.65)); }
+  }
+  .cover-subtitle {
+    font-size: clamp(26px, 3.2vw, 38px);
+    font-weight: 300; color: var(--star-white);
+    letter-spacing: 0.3em; opacity: 0.88;
+    margin-bottom: 20px;
+    animation: fadeInUp 1.5s 0.5s both;
+  }
+  .cover-info {
+    font-size: clamp(18px, 2.2vw, 26px);
+    color: rgba(224,236,255,0.7); letter-spacing: 0.25em;
+    animation: fadeInUp 1.5s 1s both;
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ==============================
+     SLIDE 2 — JOURNEY (6 CARDS)
+  ============================== */
+  .page-title {
+    font-size: clamp(36px, 5vw, 56px);
+    font-weight: 700; letter-spacing: 0.15em;
+    color: var(--star-white); margin-bottom: 6px;
+    position: relative;
+  }
+  .page-title::after {
+    content: ''; display: block; width: 70px; height: 2px;
+    background: linear-gradient(90deg,var(--ion-purple),var(--river-blue));
+    margin: 10px auto 0; border-radius: 2px;
+    box-shadow: 0 0 10px var(--ion-purple);
+  }
+  .page-subtitle {
+    font-size: clamp(16px, 1.8vw, 20px);
+    color: rgba(224,236,255,0.45); letter-spacing: 0.2em; margin-bottom: 32px;
+  }
+
+  .journey-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    width: 100%;
+  }
+  .j-card {
+    background: rgba(157,125,255,0.09);
+    border: 1px solid rgba(157,125,255,0.3);
+    border-radius: 18px;
+    padding: 24px 20px;
+    text-align: center;
+    backdrop-filter: blur(12px);
+    animation: cardAppear 0.5s both;
+    transition: transform 0.3s, box-shadow 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .j-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 32px rgba(157,125,255,0.2);
+  }
+  .j-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--ion-purple), var(--river-blue));
+    border-radius: 18px 18px 0 0;
+  }
+  .j-card:nth-child(1) { animation-delay: 0.1s; }
+  .j-card:nth-child(2) { animation-delay: 0.2s; }
+  .j-card:nth-child(3) { animation-delay: 0.3s; }
+  .j-card:nth-child(4) { animation-delay: 0.4s; }
+  .j-card:nth-child(5) { animation-delay: 0.5s; }
+  .j-card:nth-child(6) { animation-delay: 0.6s; }
+  @keyframes cardAppear {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .j-icon { font-size: 36px; margin-bottom: 10px; line-height: 1; }
+  .j-title-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 8px; }
+  .j-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(157,125,255,0.18); border: 1px solid rgba(157,125,255,0.4);
+    font-size: 22px; font-weight: 700; color: var(--ion-purple);
+    line-height: 1; flex-shrink: 0;
+  }
+  .j-name { font-size: 22px; font-weight: 700; color: var(--star-white); letter-spacing: 0.08em; line-height: 1.3; }
+  .j-time {
+    display: inline-block;
+    font-size: 16px; font-weight: 700;
+    color: var(--ion-purple);
+    background: rgba(157,125,255,0.12);
+    border: 1px solid rgba(157,125,255,0.3);
+    border-radius: 20px; padding: 2px 14px;
+    margin-bottom: 8px;
+  }
+
+  /* ==============================
+     SLIDE 3 — TRIANGLE
+  ============================== */
+  .s3-layout {
+    width: 100%; display: flex; justify-content: center; align-items: center;
+    position: relative; z-index: 10;
+  }
+  .s3-svg-wrap {
+    width: 100%; max-width: 900px;
+  }
+
+  /* ==============================
+     SLIDE 4 — QUESTIONS
+  ============================== */
+  .s4-layout { width: 100%; position: relative; z-index: 5; }
+  .principle-box {
+    background: rgba(74,144,226,0.1);
+    border: 1px solid rgba(74,144,226,0.35);
+    border-radius: 20px; padding: 28px 40px;
+    margin-bottom: 28px; backdrop-filter: blur(15px);
+  }
+  .principle-title {
+    font-size: 24px; color: var(--river-blue);
+    font-weight: 700; margin-bottom: 14px; letter-spacing: 0.1em;
+  }
+  .principle-text {
+    font-size: 22px; color: rgba(224,236,255,0.85);
+    line-height: 1.9; letter-spacing: 0.05em;
+  }
+  .questions-list { display: flex; flex-direction: column; gap: 14px; }
+  .question-item {
+    background: rgba(157,125,255,0.09);
+    border-left: 4px solid var(--ion-purple);
+    padding: 18px 28px; border-radius: 0 14px 14px 0;
+    font-size: 22px; color: var(--star-white);
+    line-height: 1.5; letter-spacing: 0.03em;
+    animation: slideInLeft 0.6s both;
+  }
+  .question-item:nth-child(1) { animation-delay: 0.2s; }
+  .question-item:nth-child(2) { animation-delay: 0.4s; }
+  .question-item:nth-child(3) { animation-delay: 0.6s; }
+  @keyframes slideInLeft {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  /* ==============================
+     SLIDE 5 — ECHO
+  ============================== */
+  .echo-cards { display: flex; gap: 28px; width: 100%; margin-top: 24px; }
+  .echo-card {
+    flex: 1;
+    background: rgba(157,125,255,0.09);
+    border: 1px solid rgba(157,125,255,0.28);
+    border-radius: 20px; padding: 36px 32px;
+    backdrop-filter: blur(15px); position: relative; overflow: hidden;
+    animation: fadeInUp 0.8s both;
+  }
+  .echo-card:nth-child(1) { animation-delay: 0.2s; }
+  .echo-card:nth-child(2) { animation-delay: 0.5s; }
+  .echo-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg,var(--ion-purple),var(--river-blue));
+    border-radius: 20px 20px 0 0;
+  }
+  .echo-icon { font-size: 42px; margin-bottom: 14px; }
+  .echo-title {
+    font-size: 26px; font-weight: 700;
+    color: var(--ion-purple); margin-bottom: 16px; letter-spacing: 0.1em;
+  }
+  .echo-text { font-size: 20px; color: rgba(224,236,255,0.8); line-height: 1.9; }
+  .echo-text strong { color: var(--star-white); }
+  .echo-note { font-size: 15px; color: rgba(224,236,255,0.4); font-style: italic; margin-top: 10px; }
+
+  .kw-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 28px; }
+  .kw-tag {
+    padding: 8px 22px; border-radius: 24px;
+    font-size: 18px; letter-spacing: 0.05em; font-weight: 700;
+  }
+
+  /* ==============================
+     SLIDE 6 — CLOSING
+  ============================== */
+  .closing-wrap {
+    text-align: center; position: relative; z-index: 10;
+  }
+  .closing-quote {
+    font-size: clamp(26px, 3.2vw, 38px);
+    color: rgba(224,236,255,0.88); line-height: 2;
+    letter-spacing: 0.12em; font-weight: 300;
+    animation: fadeInUp 1s 0.3s both;
+  }
+  .closing-quote em { color: var(--ion-purple); font-style: normal; font-weight: 700; }
+  .closing-quote .line2 { margin-top: 4px; font-size: 0.95em; }
+
+  /* ==============================
+     COMMON LAYOUT
+  ============================== */
+  .slide-content {
+    position: relative; z-index: 10; text-align: center;
+    padding: 36px 56px; max-width: 1120px; width: 100%;
+  }
+
+/* ===== MEMORY CLOUD SLIDES ===== */
+.mem-slide {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  overflow: hidden;
+}
+.mem-canvas {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 1; pointer-events: none;
+}
+.mem-title {
+  position: absolute;
+  top: 28px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 10; text-align: center;
+  pointer-events: none;
+}
+.mem-title h1 {
+  font-size: clamp(16px, 2vw, 24px);
+  font-weight: 300;
+  color: rgba(224,236,255,0.35);
+  letter-spacing: 0.5em;
+}
+.mem-title .subtitle {
+  font-size: clamp(11px, 1.1vw, 14px);
+  color: rgba(157,125,255,0.3);
+  letter-spacing: 0.3em; margin-top: 4px;
+}
+.mem-nodes {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 5;
+}
+.mem-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  cursor: default;
+  transition: transform 0.6s cubic-bezier(0.23,1,0.32,1), filter 0.4s, opacity 0.8s;
+  white-space: nowrap; text-align: center;
+}
+.mem-node:hover {
+  transform: translate(-50%,-50%) scale(1.25);
+  z-index: 100;
+}
+.mem-node .w {
+  display: inline-block; font-weight: 700;
+  letter-spacing: 0.08em; line-height: 1.2;
+  transition: text-shadow 0.4s;
+  text-shadow: 0 0 20px currentColor;
+}
+.mem-node:hover .w {
+  text-shadow: 0 0 40px currentColor, 0 0 80px currentColor;
+}
+.mem-node .sub {
+  display: block; font-size: 11px; font-weight: 300;
+  color: rgba(224,236,255,0.25); margin-top: 4px;
+  letter-spacing: 0.15em; opacity: 0;
+  transition: opacity 0.4s;
+}
+.mem-node:hover .sub { opacity: 1; }
+
+/* Category colors — Childhood */
+.mem-slide.childhood .cat-core .w { color: #FFD700; }
+.mem-slide.childhood .cat-action .w { color: #00D4FF; }
+.mem-slide.childhood .cat-emotion .w { color: #FF6B9D; }
+.mem-slide.childhood .cat-question .w { color: #9D7DFF; }
+.mem-slide.childhood .cat-object .w { color: #4A90E2; }
+.mem-slide.childhood .cat-abstract .w { color: #B8A9FF; }
+
+/* Category colors — Adult */
+.mem-slide.adult .cat-core .w { color: #FFAA33; }
+.mem-slide.adult .cat-person .w { color: #FF6B9D; }
+.mem-slide.adult .cat-event .w { color: #00D4FF; }
+.mem-slide.adult .cat-thought .w { color: #9D7DFF; }
+.mem-slide.adult .cat-object .w { color: #4A90E2; }
+.mem-slide.adult .cat-image .w { color: #B8A9FF; }
+.mem-slide.adult .cat-place .w { color: #FFAA33; }
+
+/* Category colors — Values */
+.mem-slide.values .cat-core .w { color: #FFD700; }
+.mem-slide.values .cat-v1 .w { color: #9D7DFF; }
+.mem-slide.values .cat-v2 .w { color: #4A90E2; }
+.mem-slide.values .cat-v3 .w { color: #FF6B9D; }
+
+.mem-node.center-node .w {
+  font-size: clamp(40px, 5.5vw, 64px) !important;
+  font-weight: 900 !important;
+}
+
+.mem-legend {
+  position: absolute;
+  bottom: 20px; right: 20px;
+  z-index: 50;
+  display: flex; flex-direction: column; gap: 5px;
+  opacity: 0.35; transition: opacity 0.3s;
+}
+.mem-legend:hover { opacity: 0.75; }
+.mem-legend-item {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 11px; color: rgba(224,236,255,0.6);
+  letter-spacing: 0.1em;
+}
+.mem-legend-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%; flex-shrink: 0;
+}
+
+.mem-tag {
+  position: absolute;
+  top: 24px; left: 24px;
+  z-index: 50; padding: 5px 14px;
+  border-radius: 20px; font-size: 12px;
+  font-weight: 700; letter-spacing: 0.15em;
+  backdrop-filter: blur(10px); pointer-events: none;
+}
+.mem-slide.childhood .mem-tag {
+  background: rgba(0,212,255,0.12);
+  border: 1px solid rgba(0,212,255,0.3);
+  color: #00D4FF;
+}
+.mem-slide.adult .mem-tag {
+  background: rgba(255,170,51,0.12);
+  border: 1px solid rgba(255,170,51,0.3);
+  color: #FFAA33;
+}
+.mem-slide.values .mem-tag {
+  background: rgba(255,215,0,0.12);
+  border: 1px solid rgba(255,215,0,0.3);
+  color: #FFD700;
+}
+
+</style>
+</head>
+<body>
+
+<!-- ===== SPLASH SCREEN ===== -->
+<div id="splashScreen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0F1A2C;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:opacity 1.2s ease;">
+  <canvas id="splashStars" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;"></canvas>
+  <div style="position:relative;z-index:10;text-align:center;padding:40px;">
+    <div style="font-size:clamp(52px,8vw,100px);font-weight:700;letter-spacing:0.22em;background:linear-gradient(135deg,#E0ECFF 0%,#9D7DFF 40%,#4A90E2 70%,#FFD700 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 32px rgba(157,125,255,0.5));margin-bottom:20px;line-height:1.1;">生命故事会</div>
+    <div style="font-size:clamp(18px,2.2vw,26px);font-weight:300;color:rgba(224,236,255,0.7);letter-spacing:0.3em;margin-bottom:12px;">黄奕铭 专场</div>
+    <div style="font-size:clamp(14px,1.5vw,18px);color:rgba(224,236,255,0.45);letter-spacing:0.2em;margin-bottom:60px;">2026年5月30日</div>
+    <div id="splashBtn" style="display:inline-block;padding:14px 48px;border-radius:40px;border:1px solid rgba(157,125,255,0.5);background:rgba(157,125,255,0.12);color:#E0ECFF;font-size:clamp(14px,1.6vw,18px);letter-spacing:0.25em;backdrop-filter:blur(10px);animation:splashPulse 2s ease-in-out infinite;font-family:inherit;">✦ &nbsp;点击进入&nbsp; ✦</div>
+    <div style="margin-top:24px;font-size:12px;color:rgba(224,236,255,0.2);letter-spacing:0.15em;">建议佩戴耳机，开启音量</div>
+  </div>
+</div>
+<style>
+@keyframes splashPulse {
+  0%,100% { box-shadow:0 0 20px rgba(157,125,255,0.2),0 0 40px rgba(157,125,255,0.1); }
+  50% { box-shadow:0 0 40px rgba(157,125,255,0.5),0 0 80px rgba(157,125,255,0.2); }
+}
+</style>
+<script>
+(function(){
+  var sc=document.getElementById('splashStars');
+  var sx=sc.getContext('2d');
+  var ss=[];
+  function initSS(){sc.width=window.innerWidth;sc.height=window.innerHeight;ss=[];for(var i=0;i<200;i++)ss.push({x:Math.random()*sc.width,y:Math.random()*sc.height,r:Math.random()*1.4+0.2,a:Math.random(),sp:Math.random()*0.02+0.005,ph:Math.random()*Math.PI*2});}
+  initSS();
+  function animSS(t){sx.clearRect(0,0,sc.width,sc.height);ss.forEach(function(s){s.a=0.25+0.5*Math.sin(t*s.sp+s.ph);sx.beginPath();sx.arc(s.x,s.y,s.r,0,Math.PI*2);sx.fillStyle='rgba(224,236,255,'+s.a+')';sx.fill();});requestAnimationFrame(animSS);}
+  requestAnimationFrame(animSS);
+  window.addEventListener('resize',initSS);
+
+  var entered=false;
+  function enterStory(){
+    if(entered)return;entered=true;
+    var m=document.getElementById('bgMusic');
+    if(m){m.play().catch(function(){});}
+    var splash=document.getElementById('splashScreen');
+    splash.style.opacity='0';
+    setTimeout(function(){splash.style.display='none';},1200);
+  }
+  document.getElementById('splashScreen').addEventListener('click',enterStory);
+
+  // Try silent autoplay on load
+  window.addEventListener('load',function(){
+    var m=document.getElementById('bgMusic');
+    if(m){
+      m.play().then(function(){
+        setTimeout(enterStory,600);
+      }).catch(function(){
+        // keep splash for user click
+      });
+    }
+  });
+})();
+</script>
+
+
+<canvas id="starCanvas"></canvas>
+<div class="slide-number" id="slideNum">01 / 09</div>
+
+<!-- Volume Control -->
+<div class="volume-ctrl">
+  <span class="vol-icon" id="playBtn" onclick="togglePlay()" title="播放 / 暂停">▶️</span>
+  <span class="vol-icon" id="volBtn" onclick="toggleMute()" title="静音 / 取消静音">🔊</span>
+  <span class="music-time" id="musicTime">00:00 / 00:00</span>
+  <input type="range" id="seekSlider" min="0" max="100" value="0" step="0.1" title="拖动调整播放进度">
+  <input type="range" id="volSlider" min="0" max="1" step="0.02" value="0.6" oninput="setVolume(this.value)">
+</div>
+
+<!-- Background Music -->
+<audio id="bgMusic" loop>
+  <source src="Simply Three-Interstellar.mp3" type="audio/mpeg"></audio>
+
+<div class="slides-wrapper">
+
+  <!-- ===== SLIDE 1: COVER ===== -->
+  <div class="slide active" id="slide1">
+    <canvas class="river-canvas" id="riverCanvas"></canvas>
+    <div class="slide1-content">
+      <div class="cover-title">生命故事会</div>
+      <div class="cover-subtitle">倾听生命，照见可能</div>
+      <div class="cover-info">黄奕铭 专场 &nbsp;｜&nbsp; 2026年5月30日</div>
+    </div>
+    <div class="speaker-notes" id="notes1">
+      <div class="notes-title">▸ 演讲提示</div>
+      大家晚上好。欢迎来到今天的生命故事会。<br>
+      我们每个人的生命，就像一条在宇宙中流淌的河流。<br>
+      今天，我们将一起倾听一条河流的故事，也照见我们自己的河流。
+    </div>
+  </div>
+
+
+  <!-- ===== SLIDE 2: MEMORY - CHILDHOOD ===== -->
+  <div class="slide" id="slide2">
+    <div class="mem-slide childhood" id="memChildhood">
+      <canvas class="mem-canvas" id="mcChildhood"></canvas>
+      <div class="mem-tag">记忆碎片 · 童年</div>
+      <div class="mem-title">
+        <h1>记 忆 碎 片</h1>
+        <div class="subtitle">童年 · 11岁的世界</div>
+      </div>
+      <div class="mem-nodes" id="mnChildhood"></div>
+      <div class="mem-legend" id="lgChildhood">
+        <div class="mem-legend-item"><span class="mem-legend-dot" style="background:#FFD700"></span>核心</div>
+        <div class="mem-legend-item"><span class="mem-legend-dot" style="background:#00D4FF"></span>行动</div>
+        <div class="mem-legend-item"><span class="mem-legend-dot" style="background:#FF6B9D"></span>情感</div>
+        <div class="mem-legend-item"><span class="mem-legend-dot" style="background:#9D7DFF"></span>叩问</div>
+        <div class="mem-legend-item"><span class="mem-legend-dot" style="background:#4A90E2"></span>物件</div>
+        <div class="mem-legend-item"><span class="mem-legend-dot" style="background:#B8A9FF"></span>意象</div>
+      </div>
+    </div>
+    <div class="speaker-notes" id="notes2">
+      <div class="notes-title">▸ 演讲提示</div>
+      这是奕铭童年记忆碎片的可视化呈现。每一个漂浮的词，都是一颗记忆的星。你可以邀请大家静静地看一会儿，感受这些碎片之间的引力场。
+    </div>
+  </div>
+
+  <!-- ===== SLIDE 3: MEMORY - ADULT ===== -->
+  <div class="slide" id="slide3">
+    <div class="mem-slide adult" id="memAdult">
+      <canvas class="mem-canvas" id="mcAdult"></canvas>
+      <div class="mem-tag">记忆碎片 · 成年</div>
+      <div class="mem-title">
+        <h1>记 忆 碎 片</h1>
+        <div class="subtitle">成年 · 探索与挣扎</div>
+      </div>
+      <div class="mem-nodes" id="mnAdult"></div>
+      <div class="mem-legend" id="lgAdult">
+        <div class="mem-legend-item"><span class="mem-legend-dot" style="background:#FFAA33"></span>核心</div>
+        <div class="mem-legend-item"><span class="mem-legend-dot" style="background:#FF6B9D"></span>人物</div>
+        <div class="mem-legend-item"><span class="mem-legend-dot" style="background:#00D4FF"></span>事件</div>
+        <div class="mem-legend-item"><span class="mem-legend-dot" style="background:#9D7DFF"></span>想法</div>
+        <div class="mem-legend-item"><span class="mem-legend-dot" style="background:#4A90E2"></span>物件</div>
+        <div class="mem-legend-item"><span class="mem-legend-dot" style="background:#B8A9FF"></span>意象</div>
+        <div class="mem-legend-item"><span class="mem-legend-dot" style="background:#FFAA33"></span>地点</div>
+      </div>
+    </div>
+    <div class="speaker-notes" id="notes3">
+      <div class="notes-title">▸ 演讲提示</div>
+      成年的记忆碎片，呈现出不同的分类方式：人物、事件、想法、物件、意象。你可以引导大家注意这些分类背后的思维模式。
+    </div>
+  </div>
+
+  <!-- ===== SLIDE 4: VALUES ===== -->
+  <div class="slide" id="slide4">
+    <div class="mem-slide values" id="memValues">
+      <canvas class="mem-canvas" id="mcValues"></canvas>
+      <div class="mem-tag">价值点 · 底层认知</div>
+      <div class="mem-title">
+        <h1>底 层 认 知</h1>
+        <div class="subtitle">从经历中沉淀的价值</div>
+      </div>
+      <div class="mem-nodes" id="mnValues"></div>
+      <div class="mem-legend" id="lgValues">
+        <div class="mem-legend-item"><span class="mem-legend-dot" style="background:#FFD700"></span>核心</div>
+        <div class="mem-legend-item"><span class="mem-legend-dot" style="background:#9D7DFF"></span>思维方法</div>
+        <div class="mem-legend-item"><span class="mem-legend-dot" style="background:#4A90E2"></span>核心态度</div>
+        <div class="mem-legend-item"><span class="mem-legend-dot" style="background:#FF6B9D"></span>关键要素</div>
+      </div>
+    </div>
+    <div class="speaker-notes" id="notes4">
+      <div class="notes-title">▸ 演讲提示</div>
+      这些是从奕铭生命故事中沉淀出的底层认知。每一个价值点都是他经历苦难后凝结的智慧结晶。
+    </div>
+  </div>
+
+  <!-- ===== SLIDE 2: JOURNEY ===== -->
+  <div class="slide" id="slide5">
+    <div class="slide-content">
+      <div class="page-title">今天的旅程</div>
+      <div class="page-subtitle">120分钟 · 6个章节</div>
+      <div class="journey-cards">
+        <div class="j-card">
+          <div class="j-icon">🪐</div>
+          <div class="j-title-row">
+            <span class="j-num">①</span>
+            <span class="j-name">开场与调频</span>
+          </div>
+          <div class="j-time">10 min</div>
+        </div>
+        <div class="j-card">
+          <div class="j-icon">🌌</div>
+          <div class="j-title-row">
+            <span class="j-num">②</span>
+            <span class="j-name">生命故事-童年</span>
+          </div>
+          <div class="j-time">30 min</div>
+        </div>
+        <div class="j-card">
+          <div class="j-icon">💫</div>
+          <div class="j-title-row">
+            <span class="j-num">③</span>
+            <span class="j-name">生命故事-成年</span>
+          </div>
+          <div class="j-time">30 min</div>
+        </div>
+        <div class="j-card">
+          <div class="j-icon">🌠</div>
+          <div class="j-title-row">
+            <span class="j-num">④</span>
+            <span class="j-name">回响</span>
+          </div>
+          <div class="j-time">30 min</div>
+        </div>
+        <div class="j-card">
+          <div class="j-icon">🌀</div>
+          <div class="j-title-row">
+            <span class="j-num">⑤</span>
+            <span class="j-name">意象分享</span>
+          </div>
+          <div class="j-time">10 min</div>
+        </div>
+        <div class="j-card">
+          <div class="j-icon">✨</div>
+          <div class="j-title-row">
+            <span class="j-num">⑥</span>
+            <span class="j-name">总结回应</span>
+          </div>
+          <div class="j-time">10 min</div>
+        </div>
+      </div>
+    </div>
+    <div class="speaker-notes" id="notes5">
+      <div class="notes-title">▸ 演讲提示</div>
+      今天我们有120分钟的时间。这120分钟，我们不赶时间，不追求答案，只做一件事：倾听。我们会先一起安顿身心，然后听奕铭讲述他的生命故事，接着是提问和回响，最后我们会分享一个今天浮现的意象，然后带着光离开。
+    </div>
+  </div>
+
+  <!-- ===== SLIDE 3: TRIANGLE ===== -->
+  <div class="slide" id="slide6">
+    <div class="slide-content" style="text-align:left;">
+      <div class="page-title" style="text-align:center;margin-bottom:6px;">三角——我们的共识</div>
+
+      <div class="s3-layout">
+        <div class="s3-svg-wrap">
+          <svg viewBox="0 0 900 820" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;max-height:62vh;">
+            <defs>
+              <filter id="glow2">
+                <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+                <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <linearGradient id="tGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#9D7DFF"/>
+                <stop offset="50%" stop-color="#4A90E2"/>
+                <stop offset="100%" stop-color="#9D7DFF"/>
+              </linearGradient>
+            </defs>
+
+            <!-- Triangle -->
+            <polygon points="450,140 100,690 800,690"
+              fill="rgba(157,125,255,0.06)"
+              stroke="url(#tGrad)" stroke-width="3.5"
+              filter="url(#glow2)"/>
+
+            <!-- Vertex dots -->
+            <circle cx="450" cy="140" r="18" fill="#9D7DFF" filter="url(#glow2)"/>
+            <circle cx="100" cy="690" r="18" fill="#4A90E2" filter="url(#glow2)"/>
+            <circle cx="800" cy="690" r="18" fill="#9D7DFF" filter="url(#glow2)"/>
+
+            <!-- Center -->
+            <text x="450" y="420" text-anchor="middle" fill="rgba(224,236,255,0.12)" font-size="52">✦</text>
+            <text x="450" y="458" text-anchor="middle" fill="rgba(157,125,255,0.35)" font-size="18" font-family="Noto Sans SC,Microsoft YaHei" letter-spacing="4">引力场</text>
+
+            <!-- Top: 场域 -->
+            <text x="450" y="58" text-anchor="middle" fill="#E0ECFF" font-size="44" font-family="Noto Sans SC,Microsoft YaHei" font-weight="700" letter-spacing="3">▲ 场域</text>
+            <text x="450" y="105" text-anchor="middle" fill="rgba(224,236,255,0.78)" font-size="26" font-family="Noto Sans SC,Microsoft YaHei" letter-spacing="2">尊重包容，全然保密</text>
+
+            <!-- Bottom-left: 案主 -->
+            <text x="100" y="750" text-anchor="middle" fill="#E0ECFF" font-size="44" font-family="Noto Sans SC,Microsoft YaHei" font-weight="700" letter-spacing="3">✦ 案主</text>
+            <text x="100" y="794" text-anchor="middle" fill="rgba(224,236,255,0.78)" font-size="26" font-family="Noto Sans SC,Microsoft YaHei" letter-spacing="2">真诚讲述，勇敢探索</text>
+
+            <!-- Bottom-right: 听众 -->
+            <text x="800" y="750" text-anchor="middle" fill="#E0ECFF" font-size="44" font-family="Noto Sans SC,Microsoft YaHei" font-weight="700" letter-spacing="3">✦ 听众</text>
+            <text x="800" y="794" text-anchor="middle" fill="rgba(224,236,255,0.78)" font-size="26" font-family="Noto Sans SC,Microsoft YaHei" letter-spacing="2">全心倾听，善意反馈</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="speaker-notes" id="notes6">
+      <div class="notes-title">▸ 演讲提示</div>
+      在开始之前，我们有一个简单的共识，我把它叫做"三角共识"。对于奕铭来说，你只需要真诚地讲述你想讲的故事，不需要完美。对于我们每一位听众来说，我们的任务是全心倾听，不评判，不指导。而我们共同创造的这个场域，是安全的、保密的。
+    </div>
+  </div>
+
+  <!-- ===== SLIDE 4: QUESTIONS ===== -->
+  <div class="slide" id="slide7">
+    <canvas id="rippleCanvas" style="position:absolute;bottom:0;left:0;width:100%;height:55%;z-index:1;pointer-events:none;"></canvas>
+    <div class="slide-content s4-layout" style="position:relative;z-index:5;">
+      <div class="page-title">好奇提问</div>
+      <div class="page-subtitle">非评判 · 不指导 · 只是好奇</div>
+
+      <div class="principle-box">
+        <div class="principle-title">🌊 提问原则</div>
+        <div class="principle-text">
+          不问「为什么」&nbsp;&nbsp;不问「你应该」<br>
+          只问「是什么」&nbsp;&nbsp;只问「那是什么感觉」
+        </div>
+      </div>
+
+      <div class="questions-list">
+        <div class="question-item">💭 &nbsp;故事里最让你触动的瞬间是什么？</div>
+        <div class="question-item">🌊 &nbsp;你是否也有过类似的矛盾时刻？</div>
+        <div class="question-item">🌟 &nbsp;假如你是当时的主角，你会怎么做？</div>
+      </div>
+    </div>
+    <div class="speaker-notes" id="notes7">
+      <div class="notes-title">▸ 演讲提示</div>
+      接下来是30分钟的好奇提问时间。在这里，我们不做评判，不给建议，不指导人生。我们只是带着好奇，去了解更多的细节，去感受奕铭当时的感受。如果你有问题，请举手，我会邀请你分享。
+    </div>
+  </div>
+
+  <!-- ===== SLIDE 5: ECHO ===== -->
+  <div class="slide" id="slide8">
+    <div class="slide-content">
+      <div class="page-title">回响</div>
+      <div class="page-subtitle">星光折射 · 多维看见</div>
+
+      <div class="echo-cards">
+        <div class="echo-card">
+          <div class="echo-icon">🔭</div>
+          <div class="echo-title">特质提炼</div>
+          <div class="echo-text">
+            如果TA的故事是一部<strong>电影</strong>、<br>
+            一本<strong>书</strong>、一个<strong>物品</strong>，<br>
+            会是什么？
+          </div>
+          <div class="echo-note">从整体意象出发，说明你的理由</div>
+        </div>
+        <div class="echo-card">
+          <div class="echo-icon">🌠</div>
+          <div class="echo-title">关键词看见</div>
+          <div class="echo-text">
+            请用 <strong style="color:var(--ion-purple);">1~3个关键词</strong><br>
+            概括你看到的TA<br>
+            并说明你为什么这样看见
+          </div>
+          <div class="echo-note">关键词是礼物，不是评判</div>
+        </div>
+      </div>
+
+      <div class="kw-row">
+        <span class="kw-tag" style="background:rgba(157,125,255,0.15);border:1px solid rgba(157,125,255,0.4);color:var(--ion-purple);">勇气</span>
+        <span class="kw-tag" style="background:rgba(74,144,226,0.15);border:1px solid rgba(74,144,226,0.4);color:var(--river-blue);">流动</span>
+        <span class="kw-tag" style="background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.35);color:var(--star-gold);">光</span>
+        <span class="kw-tag" style="background:rgba(157,125,255,0.08);border:1px solid rgba(157,125,255,0.2);color:rgba(224,236,255,0.45);">···你的关键词</span>
+      </div>
+    </div>
+    <div class="speaker-notes" id="notes8">
+      <div class="notes-title">▸ 演讲提示</div>
+      提问环节结束后，我们会进入30分钟的回响时间。回响不是评价，而是你从这个故事里看到的东西。就像一束光通过多棱镜会折射出不同的颜色，每个人从同一个故事里看到的，其实都是自己的投射。
+    </div>
+  </div>
+
+  <!-- ===== SLIDE 6: CLOSING ===== -->
+  <div class="slide" id="slide9">
+    <div class="slide-content">
+      <div class="page-title" style="margin-bottom:48px;">在这里，你的故事，就是全世界</div>
+      <div class="closing-quote">
+        感谢 <em>奕铭</em> 分享你的生命故事<br>
+        <span class="line2">感谢所有参与伙伴的聆听</span>
+      </div>
+    </div>
+    <div class="speaker-notes" id="notes9">
+      <div class="notes-title">▸ 演讲提示</div>
+      今天的旅程就要结束了。感谢奕铭的真诚分享，也感谢每一位的全心倾听。我们每个人都是宇宙中一颗独特的星星。当我们聚在一起，就形成了璀璨的银河。期待我们在下一片星云重逢。
+    </div>
+  </div>
+
+</div>
+
+<!-- Navigation -->
+<div class="nav">
+  <button class="nav-btn" onclick="changeSlide(-1)">← 上一页</button>
+  <div class="nav-dot active" onclick="goToSlide(0)"></div>
+  <div class="nav-dot" onclick="goToSlide(1)"></div>
+  <div class="nav-dot" onclick="goToSlide(2)"></div>
+  <div class="nav-dot" onclick="goToSlide(3)"></div>
+  <div class="nav-dot" onclick="goToSlide(4)"></div>
+  <div class="nav-dot" onclick="goToSlide(5)"></div>
+  <div class="nav-dot" onclick="goToSlide(6)"></div>
+  <div class="nav-dot" onclick="goToSlide(7)"></div>
+  <div class="nav-dot" onclick="goToSlide(8)"></div>
+  <button class="nav-btn" onclick="changeSlide(1)">下一页 →</button>
+</div>
+
+<button class="notes-toggle" id="notesToggle" onclick="toggleNotes()">📝 提示</button>
+
+<script>
+// ===== STATE =====
+let currentSlide = 0;
+const totalSlides = 9;
+let notesVisible = false;
+
+// ===== AUDIO =====
+const bgMusic = document.getElementById('bgMusic');
+const seekSlider = document.getElementById('seekSlider');
+const musicTime = document.getElementById('musicTime');
+const playBtn = document.getElementById('playBtn');
+let muted = false;
+let isSeeking = false;
+let userHasInteracted = false;
+bgMusic.volume = 0.6;
+
+function fmtTime(s) {
+  if (!isFinite(s)) return '00:00';
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0');
+}
+
+function updatePlayBtn() {
+  playBtn.textContent = bgMusic.paused ? '▶️' : '⏸️';
+}
+updatePlayBtn();
+
+function togglePlay() {
+  if (bgMusic.paused) {
+    bgMusic.play().catch(() => {});
+  } else {
+    bgMusic.pause();
+  }
+}
+
+// 用户交互后持续尝试播放（解决浏览器自动播放限制）
+function tryPlayMusic() {
+  if (userHasInteracted) return;
+  userHasInteracted = true;
+  bgMusic.play().catch(() => {
+    // 如果还是失败，等待下一次交互
+    userHasInteracted = false;
+  });
+}
+document.addEventListener('click', tryPlayMusic, { once: false });
+document.addEventListener('keydown', tryPlayMusic, { once: false });
+
+bgMusic.addEventListener('loadedmetadata', () => {
+  seekSlider.max = bgMusic.duration || 100;
+});
+bgMusic.addEventListener('timeupdate', () => {
+  if (!isSeeking) seekSlider.value = bgMusic.currentTime;
+  musicTime.textContent = fmtTime(bgMusic.currentTime) + ' / ' + fmtTime(bgMusic.duration || 0);
+  updatePlayBtn();
+});
+bgMusic.addEventListener('play', updatePlayBtn);
+bgMusic.addEventListener('pause', updatePlayBtn);
+
+seekSlider.addEventListener('input', () => {
+  isSeeking = true;
+  bgMusic.currentTime = parseFloat(seekSlider.value);
+});
+seekSlider.addEventListener('change', () => { isSeeking = false; });
+
+function toggleMute() {
+  muted = !muted;
+  bgMusic.muted = muted;
+  document.getElementById('volBtn').textContent = muted ? '🔇' : '🔊';
+}
+function setVolume(v) {
+  bgMusic.volume = parseFloat(v);
+  bgMusic.muted = false;
+  muted = false;
+  document.getElementById('volBtn').textContent = parseFloat(v) === 0 ? '🔇' : '🔊';
+}
+
+// ===== STARFIELD =====
+const starCanvas = document.getElementById('starCanvas');
+const starCtx = starCanvas.getContext('2d');
+let stars = [];
+
+function initStars() {
+  starCanvas.width = window.innerWidth;
+  starCanvas.height = window.innerHeight;
+  stars = [];
+  const count = Math.floor((window.innerWidth * window.innerHeight) / 5000);
+  for (let i = 0; i < count; i++) {
+    stars.push({
+      x: Math.random() * starCanvas.width,
+      y: Math.random() * starCanvas.height,
+      r: Math.random() * 1.5 + 0.2,
+      alpha: Math.random(),
+      speed: Math.random() * 0.02 + 0.005,
+      phase: Math.random() * Math.PI * 2
+    });
+  }
+}
+function animateStars(t) {
+  starCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+  stars.forEach(s => {
+    s.alpha = 0.3 + 0.5 * Math.sin(t * s.speed + s.phase);
+    starCtx.beginPath();
+    starCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    starCtx.fillStyle = `rgba(224,236,255,${s.alpha})`;
+    starCtx.fill();
+  });
+  requestAnimationFrame(animateStars);
+}
+
+// ===== RIVER =====
+const riverCanvas = document.getElementById('riverCanvas');
+const riverCtx = riverCanvas.getContext('2d');
+let riverAnim;
+
+function drawRiver(t) {
+  riverCanvas.width = window.innerWidth;
+  riverCanvas.height = window.innerHeight * 0.4;
+  const w = riverCanvas.width, h = riverCanvas.height;
+  riverCtx.clearRect(0, 0, w, h);
+
+  for (let layer = 0; layer < 4; layer++) {
+    const yBase = h * (0.3 + layer * 0.15);
+    const amplitude = 18 - layer * 3;
+    const opacity = 0.12 - layer * 0.02;
+    const blur = 8 - layer * 1.5;
+    riverCtx.save();
+    riverCtx.filter = `blur(${blur}px)`;
+    riverCtx.beginPath();
+    riverCtx.moveTo(0, yBase);
+    for (let x = 0; x < w; x += 4) {
+      const y = yBase + Math.sin((x/w)*Math.PI*4 + t*0.5)*amplitude + Math.sin((x/w)*Math.PI*7 + t*0.3)*(amplitude*0.4);
+      riverCtx.lineTo(x, y);
+    }
+    riverCtx.lineTo(w, h); riverCtx.lineTo(0, h); riverCtx.closePath();
+    const grad = riverCtx.createLinearGradient(0, yBase-amplitude, 0, h);
+    grad.addColorStop(0, `rgba(74,144,226,${opacity*2})`);
+    grad.addColorStop(0.3, `rgba(74,144,226,${opacity})`);
+    grad.addColorStop(1, 'rgba(74,144,226,0)');
+    riverCtx.fillStyle = grad; riverCtx.fill(); riverCtx.restore();
+  }
+  riverCtx.save(); riverCtx.filter = 'blur(2px)';
+  riverCtx.beginPath();
+  const yC = h * 0.45;
+  riverCtx.moveTo(0, yC);
+  for (let x = 0; x < w; x += 3) {
+    const y = yC + Math.sin((x/w)*Math.PI*3 + t*0.4)*20 + Math.cos((x/w)*Math.PI*6 + t*0.25)*8;
+    riverCtx.lineTo(x, y);
+  }
+  const lg = riverCtx.createLinearGradient(0,0,w,0);
+  lg.addColorStop(0,'rgba(74,144,226,0)');
+  lg.addColorStop(0.2,'rgba(74,144,226,0.6)');
+  lg.addColorStop(0.5,'rgba(157,125,255,0.85)');
+  lg.addColorStop(0.8,'rgba(74,144,226,0.6)');
+  lg.addColorStop(1,'rgba(74,144,226,0)');
+  riverCtx.strokeStyle = lg; riverCtx.lineWidth = 2; riverCtx.stroke(); riverCtx.restore();
+
+  for (let i = 0; i < 8; i++) {
+    const sx = ((t*80 + i*(w/8)) % w);
+    const sy = yC + Math.sin((sx/w)*Math.PI*3 + t*0.4)*20;
+    riverCtx.beginPath(); riverCtx.arc(sx, sy, 2, 0, Math.PI*2);
+    riverCtx.fillStyle = `rgba(255,215,0,${0.3+0.5*Math.sin(t*2+i)})`; riverCtx.fill();
+  }
+}
+function startRiver() {
+  function loop(t) { drawRiver(t/1000); riverAnim = requestAnimationFrame(loop); }
+  riverAnim = requestAnimationFrame(loop);
+}
+function stopRiver() { if (riverAnim) cancelAnimationFrame(riverAnim); }
+
+// ===== RIPPLE =====
+const rippleCanvas = document.getElementById('rippleCanvas');
+const rippleCtx = rippleCanvas.getContext('2d');
+let rippleAnim;
+
+function drawRipple(t) {
+  const w = rippleCanvas.offsetWidth || window.innerWidth;
+  const h = rippleCanvas.offsetHeight || window.innerHeight * 0.55;
+  rippleCanvas.width = w; rippleCanvas.height = h;
+  rippleCtx.clearRect(0, 0, w, h);
+
+  const bg = rippleCtx.createLinearGradient(0,0,0,h);
+  bg.addColorStop(0,'rgba(74,144,226,0)');
+  bg.addColorStop(0.5,'rgba(74,144,226,0.04)');
+  bg.addColorStop(1,'rgba(74,144,226,0.10)');
+  rippleCtx.fillStyle = bg; rippleCtx.fillRect(0,0,w,h);
+
+  [{x:w*0.3,y:h*0.4},{x:w*0.65,y:h*0.5},{x:w*0.5,y:h*0.75}].forEach((c,ci) => {
+    for (let ring = 0; ring < 5; ring++) {
+      const progress = ((t*0.3 + ci*1.5 + ring*0.8) % 4) / 4;
+      const radius = progress * 120;
+      rippleCtx.beginPath(); rippleCtx.arc(c.x, c.y, radius, 0, Math.PI*2);
+      rippleCtx.strokeStyle = `rgba(74,144,226,${(1-progress)*0.15})`;
+      rippleCtx.lineWidth = 1.5; rippleCtx.stroke();
+    }
+  });
+  for (let i = 0; i < 6; i++) {
+    const x = (Math.sin(t*0.2+i*1.5)*0.3+0.5+i*0.15)*w % w;
+    const y = h*(0.2+i*0.1) + Math.sin(t*0.5+i)*10;
+    const a = 0.3+0.3*Math.sin(t+i);
+    rippleCtx.beginPath(); rippleCtx.arc(x, y, 2, 0, Math.PI*2);
+    rippleCtx.fillStyle = `rgba(255,215,0,${a})`; rippleCtx.fill();
+    rippleCtx.beginPath(); rippleCtx.arc(x, y+15+Math.sin(t*0.3+i)*5, 1, 0, Math.PI*2);
+    rippleCtx.fillStyle = `rgba(255,215,0,${a*0.3})`; rippleCtx.fill();
+  }
+}
+function startRipple() {
+  function loop(t) { drawRipple(t/1000); rippleAnim = requestAnimationFrame(loop); }
+  rippleAnim = requestAnimationFrame(loop);
+}
+function stopRipple() { if (rippleAnim) cancelAnimationFrame(rippleAnim); }
+
+// ===== SLIDES =====
+const slides = document.querySelectorAll('.slide');
+const dots = document.querySelectorAll('.nav-dot');
+const slideNumEl = document.getElementById('slideNum');
+
+function goToSlide(index) {
+  if (currentSlide === 0) stopRiver();
+  if (currentSlide === 6) stopRipple();
+  slides[currentSlide].classList.remove('active');
+  dots[currentSlide].classList.remove('active');
+  currentSlide = Math.max(0, Math.min(index, totalSlides-1));
+  slides[currentSlide].classList.add('active');
+  dots[currentSlide].classList.add('active');
+  slideNumEl.textContent = `0${currentSlide+1} / 0${totalSlides}`;
+  if (currentSlide === 0) startRiver();
+  if (currentSlide === 6) startRipple();
+  document.querySelectorAll('.speaker-notes').forEach(n => n.classList.remove('visible'));
+  if (notesVisible) document.getElementById(`notes${currentSlide+1}`).classList.add('visible');
+}
+function changeSlide(dir) { goToSlide(currentSlide+dir); }
+
+function toggleNotes() {
+  notesVisible = !notesVisible;
+  const t = document.getElementById('notesToggle');
+  if (notesVisible) {
+    document.getElementById(`notes${currentSlide+1}`).classList.add('visible');
+    t.style.color = 'var(--ion-purple)'; t.style.borderColor = 'var(--ion-purple)';
+  } else {
+    document.querySelectorAll('.speaker-notes').forEach(n => n.classList.remove('visible'));
+    t.style.color = ''; t.style.borderColor = '';
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' ') { e.preventDefault(); changeSlide(1); }
+  else if (e.key==='ArrowLeft'||e.key==='ArrowUp') { e.preventDefault(); changeSlide(-1); }
+  else if (e.key==='n'||e.key==='N') toggleNotes();
+  else if (e.key>='1'&&e.key<='9') goToSlide(parseInt(e.key)-1);
+});
+
+let touchStartX = 0;
+document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; });
+document.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(dx) > 60) changeSlide(dx < 0 ? 1 : -1);
+});
+
+window.addEventListener('resize', () => { initStars(); });
+initStars();
+requestAnimationFrame(animateStars);
+startRiver();
+
+// ===== MEMORY CLOUD ENGINE =====
+function renderMemoryCloud(containerId, canvasId, nodesId, data, catMap) {
+  const container = document.getElementById(containerId);
+  const canvas = document.getElementById(canvasId);
+  const nodeBox = document.getElementById(nodesId);
+  const ctx = canvas.getContext('2d');
+  let animId = null;
+
+  function resize() {
+    canvas.width = container.offsetWidth;
+    canvas.height = container.offsetHeight;
+  }
+  resize();
+
+  const nodeEls = [];
+  data.forEach((d, i) => {
+    const el = document.createElement('div');
+    el.className = 'mem-node cat-' + d.cat + (d.cat === 'core' ? ' center-node' : '');
+    const sz = Math.max(15, (d.size || 22) * 1.1);
+    el.innerHTML = '<span class="w" style="font-size:' + sz + 'px">' + d.text + '</span>' +
+                   (d.sub ? '<span class="sub">' + d.sub + '</span>' : '');
+    el.style.left = (d.cx * 100) + '%';
+    el.style.top = (d.cy * 100) + '%';
+    nodeBox.appendChild(el);
+    nodeEls.push({ el, cx: d.cx, cy: d.cy, glow: d.glow || 0.5, cat: d.cat });
+  });
+
+  // Build connections from core to all, and between nearby same-cat nodes
+  const conns = [];
+  const coreIdx = data.findIndex(d => d.cat === 'core');
+  if (coreIdx >= 0) {
+    data.forEach((d, i) => { if (i !== coreIdx) conns.push([coreIdx, i, 0.4 + Math.random()*0.3]); });
+  }
+  // Same-cat connections
+  for (let i = 0; i < data.length; i++) {
+    for (let j = i + 1; j < data.length; j++) {
+      if (data[i].cat === data[j].cat && data[i].cat !== 'core') {
+        const dist = Math.hypot(data[i].cx - data[j].cx, data[i].cy - data[j].cy);
+        if (dist < 0.45) conns.push([i, j, Math.max(0.2, 0.5 - dist)]);
+      }
+    }
+  }
+
+  function drawLines(t) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const w = canvas.width, h = canvas.height;
+    conns.forEach(([a, b, strength]) => {
+      const mA = data[a], mB = data[b];
+      const ax = mA.cx * w, ay = mA.cy * h;
+      const bx = mB.cx * w, by = mB.cy * h;
+      const alpha = strength * (0.06 + 0.05 * Math.sin(t * 0.001 + a));
+      const mx = (ax + bx) / 2, my = (ay + by) / 2;
+      const dx = bx - ax, dy = by - ay;
+      const dist = Math.max(1, Math.sqrt(dx*dx + dy*dy));
+      const offset = dist * 0.1 * Math.sin(t * 0.0008 + a + b);
+      const nx = -dy / dist, ny = dx / dist;
+      const cpx = mx + nx * offset, cpy = my + ny * offset;
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.quadraticCurveTo(cpx, cpy, bx, by);
+      const color = catMap[mA.cat] || '#9D7DFF';
+      const r = parseInt(color.slice(1,3),16);
+      const g = parseInt(color.slice(3,5),16);
+      const bl = parseInt(color.slice(5,7),16);
+      ctx.strokeStyle = 'rgba(' + r + ',' + g + ',' + bl + ',' + alpha + ')';
+      ctx.lineWidth = strength * 1.0;
+      ctx.stroke();
+    });
+  }
+
+  function animate(t) {
+    drawLines(t);
+    nodeEls.forEach((n, i) => {
+      const fx = Math.sin(t * 0.0006 + i * 1.7) * (2 + n.glow * 4);
+      const fy = Math.cos(t * 0.0008 + i * 2.3) * (1.5 + n.glow * 3);
+      n.el.style.transform = 'translate(calc(-50% + ' + fx + 'px), calc(-50% + ' + fy + 'px))';
+    });
+    animId = requestAnimationFrame(animate);
+  }
+
+  return {
+    start() { if (!animId) animId = requestAnimationFrame(animate); },
+    stop() { if (animId) { cancelAnimationFrame(animId); animId = null; } },
+    resize() { resize(); }
+  };
+}
+
+// ===== CHILDHOOD DATA =====
+const childhoodData = [
+  { text:'童年', cat:'core', size:72, cx:0.50, cy:0.48, glow:1.0, sub:'记忆的起点' },
+  { text:'河边骑车', cat:'action', size:28, cx:0.20, cy:0.28 },
+  { text:'八卦掌', cat:'action', size:26, cx:0.12, cy:0.42, sub:'双手拥抱世界' },
+  { text:'上房揭瓦', cat:'action', size:26, cx:0.28, cy:0.16 },
+  { text:'偷偷摸摸看书', cat:'action', size:24, cx:0.36, cy:0.26 },
+  { text:'上学神游', cat:'action', size:24, cx:0.75, cy:0.28 },
+  { text:'小物品战争游戏', cat:'action', size:20, cx:0.15, cy:0.60 },
+  { text:'上流氓学校', cat:'action', size:20, cx:0.22, cy:0.70 },
+  { text:'莫名的忧伤', cat:'emotion', size:26, cx:0.78, cy:0.46 },
+  { text:'分不清真假', cat:'emotion', size:22, cx:0.85, cy:0.58 },
+  { text:'老感觉人生比较无聊', cat:'emotion', size:22, cx:0.88, cy:0.35 },
+  { text:'自觉现实贫瘠', cat:'emotion', size:20, cx:0.82, cy:0.22 },
+  { text:'我要去哪儿？', cat:'question', size:32, cx:0.75, cy:0.18, sub:'多个路口' },
+  { text:'周杰伦', cat:'object', size:24, cx:0.18, cy:0.78, sub:'盗版磁带' },
+  { text:'《伊索寓言》', cat:'object', size:22, cx:0.32, cy:0.80 },
+  { text:'《世界儿童》', cat:'object', size:22, cx:0.46, cy:0.83 },
+  { text:'漫画', cat:'object', size:24, cx:0.40, cy:0.72 },
+  { text:'《东周列国志》', cat:'object', size:22, cx:0.56, cy:0.76 },
+  { text:'人生红皮书', cat:'object', size:23, cx:0.70, cy:0.79 },
+  { text:'双手拥抱世界', cat:'abstract', size:20, cx:0.58, cy:0.68 },
+  { text:'多个路口', cat:'abstract', size:18, cx:0.65, cy:0.22 },
+  { text:'喜欢探索', cat:'abstract', size:24, cx:0.32, cy:0.38 },
+  { text:'想要自主学习', cat:'abstract', size:20, cx:0.52, cy:0.34 },
+  { text:'不想走循规蹈矩的路', cat:'abstract', size:22, cx:0.62, cy:0.66 },
+  { text:'百家争鸣', cat:'abstract', size:22, cx:0.38, cy:0.62, sub:'多种活法' },
+];
+const childhoodColors = { core:'#FFD700', action:'#00D4FF', emotion:'#FF6B9D', question:'#9D7DFF', object:'#4A90E2', abstract:'#B8A9FF' };
+
+// ===== ADULT DATA =====
+const adultData = [
+  { text:'成年', cat:'core', size:72, cx:0.50, cy:0.48, glow:1.0, sub:'探索与挣扎' },
+  { text:'尼采', cat:'person', size:26, cx:0.20, cy:0.25 },
+  { text:'托所耶夫斯基', cat:'person', size:24, cx:0.12, cy:0.40 },
+  { text:'比尔加耶夫', cat:'person', size:22, cx:0.28, cy:0.18 },
+  { text:'女诗人网友', cat:'person', size:22, cx:0.35, cy:0.26 },
+  { text:'古板的老帮菜', cat:'person', size:20, cx:0.22, cy:0.55 },
+  { text:'人大教授', cat:'person', size:22, cx:0.14, cy:0.65 },
+  { text:'卖洁具销售', cat:'event', size:26, cx:0.75, cy:0.24 },
+  { text:'找到摸鱼的工作', cat:'event', size:24, cx:0.80, cy:0.38, sub:'舒适的生态位' },
+  { text:'公司创业', cat:'event', size:24, cx:0.84, cy:0.50 },
+  { text:'简历被卡', cat:'event', size:22, cx:0.76, cy:0.62 },
+  { text:'聊人生哲学', cat:'event', size:22, cx:0.68, cy:0.72 },
+  { text:'创造', cat:'thought', size:28, cx:0.45, cy:0.22 },
+  { text:'自由', cat:'thought', size:28, cx:0.55, cy:0.18 },
+  { text:'爱', cat:'thought', size:26, cx:0.50, cy:0.32 },
+  { text:'表达能力受限', cat:'thought', size:20, cx:0.38, cy:0.70 },
+  { text:'对管理感到不适', cat:'thought', size:20, cx:0.58, cy:0.68 },
+  { text:'奴隶与自由人', cat:'thought', size:22, cx:0.46, cy:0.78, sub:'二元论' },
+  { text:'箱庭理论', cat:'thought', size:22, cx:0.62, cy:0.75 },
+  { text:'读经', cat:'object', size:22, cx:0.35, cy:0.76 },
+  { text:'只要你低头', cat:'image', size:20, cx:0.86, cy:0.30, sub:'幸福就是你的了' },
+];
+const adultColors = { core:'#FFAA33', person:'#FF6B9D', event:'#00D4FF', thought:'#9D7DFF', object:'#4A90E2', image:'#B8A9FF', place:'#FFAA33' };
+
+// ===== VALUES DATA =====
+const valuesData = [
+  { text:'底层认知', cat:'core', size:72, cx:0.50, cy:0.48, glow:1.0 },
+  { text:'相互的滋养', cat:'v2', size:26, cx:0.50, cy:0.18 },
+  { text:'用辩证思维', cat:'v1', size:26, cx:0.75, cy:0.28 },
+  { text:'掌握规律\n利用规律', cat:'v1', size:22, cx:0.82, cy:0.48 },
+  { text:'外部评判\n摩擦力为0', cat:'v2', size:22, cx:0.78, cy:0.68 },
+  { text:'越唯物\n越能改变世界', cat:'v2', size:24, cx:0.52, cy:0.80 },
+  { text:'反事实推演', cat:'v1', size:28, cx:0.24, cy:0.70 },
+  { text:'必要条件\n+助力+好运', cat:'v3', size:20, cx:0.18, cy:0.50 },
+  { text:'生命故事\n和排序', cat:'v3', size:22, cx:0.22, cy:0.30 },
+  { text:'不是某一种道理', cat:'v2', size:24, cx:0.50, cy:0.08 },
+];
+const valuesColors = { core:'#FFD700', v1:'#9D7DFF', v2:'#4A90E2', v3:'#FF6B9D' };
+
+// ===== INIT MEMORY CLOUDS =====
+const mcChildhood = renderMemoryCloud('memChildhood','mcChildhood','mnChildhood',childhoodData,childhoodColors);
+const mcAdult = renderMemoryCloud('memAdult','mcAdult','mnAdult',adultData,adultColors);
+const mcValues = renderMemoryCloud('memValues','mcValues','mnValues',valuesData,valuesColors);
+
+const memClouds = [null, mcChildhood, mcAdult, mcValues, null, null, null, null, null];
+
+// ===== MEMORY CLOUD LIFECYCLE =====
+function updateMemoryClouds() {
+  memClouds.forEach((mc, i) => {
+    if (!mc) return;
+    if (i === currentSlide) { mc.start(); }
+    else { mc.stop(); }
+  });
+}
+// Hook into goToSlide
+const _origGoToSlide = goToSlide;
+goToSlide = function(index) {
+  _origGoToSlide(index);
+  updateMemoryClouds();
+};
+window.addEventListener('resize', () => {
+  memClouds.forEach(mc => mc && mc.resize());
+});
+
+</script>
+
+<style>
+body::after {
+  content: '← → 切换  |  N 演讲提示  |  1-9 跳转';
+  position: fixed; bottom: 6px; left: 50%; transform: translateX(-50%);
+  font-size: 10px; color: rgba(224,236,255,0.1);
+  letter-spacing: 1px; pointer-events: none; z-index: 50; white-space: nowrap;
+}
+</style>
+</body>
+</html>
